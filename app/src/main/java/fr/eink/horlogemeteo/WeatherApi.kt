@@ -14,9 +14,16 @@ data class Weather(
     val min: Double,
     val max: Double,
     val fetchedAt: Long,
+    val timeZone: String? = null,
 )
 
-data class Place(val name: String, val detail: String, val latitude: Double, val longitude: Double)
+data class Place(
+    val name: String,
+    val detail: String,
+    val latitude: Double,
+    val longitude: Double,
+    val timeZone: String?,
+)
 
 /** Accès à Open-Meteo (gratuit, sans clé d'API). Appels bloquants : à lancer hors du thread UI. */
 object WeatherApi {
@@ -38,6 +45,7 @@ object WeatherApi {
             min = daily.getJSONArray("temperature_2m_min").getDouble(0),
             max = daily.getJSONArray("temperature_2m_max").getDouble(0),
             fetchedAt = System.currentTimeMillis(),
+            timeZone = json.optString("timezone").takeIf { it.isNotBlank() && it != "GMT" },
         )
     }
 
@@ -52,7 +60,10 @@ object WeatherApi {
                 r.optString("admin1").takeIf { it.isNotBlank() },
                 r.optString("country").takeIf { it.isNotBlank() },
             ).joinToString(", ")
-            Place(r.getString("name"), detail, r.getDouble("latitude"), r.getDouble("longitude"))
+            Place(
+                r.getString("name"), detail, r.getDouble("latitude"), r.getDouble("longitude"),
+                r.optString("timezone").takeIf { it.isNotBlank() },
+            )
         }
     }
 

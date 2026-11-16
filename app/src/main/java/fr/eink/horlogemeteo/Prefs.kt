@@ -16,8 +16,17 @@ class Prefs(context: Context) {
         get() = sp.getString(K_PLACE, "") ?: ""
         set(v) = sp.edit().putString(K_PLACE, v).apply()
 
-    fun setLocation(lat: Double, lon: Double, name: String) {
+    /** Fuseau horaire du lieu choisi (null = celui de l'appareil). */
+    var timeZoneId: String?
+        get() = sp.getString(K_TZ, null)
+        set(v) = sp.edit().putString(K_TZ, v).apply()
+
+    val timeZone: java.util.TimeZone
+        get() = timeZoneId?.let { java.util.TimeZone.getTimeZone(it) } ?: java.util.TimeZone.getDefault()
+
+    fun setLocation(lat: Double, lon: Double, name: String, tz: String?) {
         sp.edit()
+            .putString(K_TZ, tz)
             .putLong(K_LAT, java.lang.Double.doubleToRawLongBits(lat))
             .putLong(K_LON, java.lang.Double.doubleToRawLongBits(lon))
             .putString(K_PLACE, name)
@@ -46,7 +55,9 @@ class Prefs(context: Context) {
         }
 
     fun saveWeather(w: Weather) {
-        sp.edit()
+        val e = sp.edit()
+        if (w.timeZone != null) e.putString(K_TZ, w.timeZone)
+        e
             .putFloat(K_W_TEMP, w.temperature.toFloat())
             .putFloat(K_W_FEELS, w.feelsLike.toFloat())
             .putInt(K_W_CODE, w.code)
@@ -79,6 +90,7 @@ class Prefs(context: Context) {
         const val K_LAT = "lat"
         const val K_LON = "lon"
         const val K_PLACE = "place"
+        const val K_TZ = "timezone"
         const val K_REFRESH = "refresh_minutes"
         const val K_W_TEMP = "w_temp"
         const val K_W_FEELS = "w_feels"

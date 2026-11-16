@@ -70,6 +70,9 @@ class SettingsActivity : Activity() {
         findViewById<Button>(R.id.gps_button).setOnClickListener { useMyLocation() }
         findViewById<Button>(R.id.refresh_button).setOnClickListener { refreshNow() }
         findViewById<Button>(R.id.done_button).setOnClickListener { finish() }
+        if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
+            findViewById<Button>(R.id.done_button).text = "Retour à l'horloge"
+        }
 
         val group = findViewById<RadioGroup>(R.id.refresh_group)
         val selected = refreshOptions.entries.firstOrNull { it.value == prefs.refreshMinutes }?.key ?: R.id.r60
@@ -96,7 +99,7 @@ class SettingsActivity : Activity() {
         val w = prefs.weather
         status.text = when {
             w == null -> ""
-            else -> "Dernière météo : ${w.temperature.toInt()}° à " +
+            else -> "Dernière météo : ${Math.round(w.temperature)}° à " +
                 SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(w.fetchedAt)) +
                 if (prefs.lastAttemptFailed) " (dernière tentative échouée)" else ""
         }
@@ -131,13 +134,13 @@ class SettingsActivity : Activity() {
         b.setOnClickListener {
             results.removeAllViews()
             searchField.setText("")
-            applyLocation(p.latitude, p.longitude, p.name)
+            applyLocation(p.latitude, p.longitude, p.name, p.timeZone)
         }
         return b
     }
 
-    private fun applyLocation(lat: Double, lon: Double, name: String) {
-        prefs.setLocation(lat, lon, name)
+    private fun applyLocation(lat: Double, lon: Double, name: String, tz: String?) {
+        prefs.setLocation(lat, lon, name, tz)
         renderState()
         WidgetRenderer.updateAll(this)
         refreshNow()
@@ -159,7 +162,7 @@ class SettingsActivity : Activity() {
             }
             val name = withContext(Dispatchers.IO) { reverseGeocode(loc) }
                 ?: String.format(Locale.getDefault(), "%.2f, %.2f", loc.latitude, loc.longitude)
-            applyLocation(loc.latitude, loc.longitude, name)
+            applyLocation(loc.latitude, loc.longitude, name, java.util.TimeZone.getDefault().id)
         }
     }
 

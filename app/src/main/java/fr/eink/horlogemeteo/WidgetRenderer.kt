@@ -58,13 +58,18 @@ object WidgetRenderer {
         }
         v.setTextViewText(R.id.updated, status)
 
-        // Actions : heure/date → réglages ; météo → actualisation manuelle
+        // Actions : heure/date → application horloge ; météo → actualisation manuelle
         val settings = PendingIntent.getActivity(
             context, 1,
             Intent(context, SettingsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        v.setOnClickPendingIntent(R.id.clock_area, settings)
+        val clockApp = PendingIntent.getActivity(
+            context, 4,
+            Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        v.setOnClickPendingIntent(R.id.clock_area, clockApp)
         v.setOnClickPendingIntent(
             R.id.weather_area,
             if (prefs.hasLocation) ClockWeatherWidget.refreshIntent(context) else settings,
