@@ -10,6 +10,9 @@ class Prefs(context: Context) {
 
     // --- Lieu ---
     val hasLocation: Boolean get() = sp.contains(K_LAT) && sp.contains(K_LON)
+
+    /** Une météo peut être demandée : lieu fixé, ou suivi de position activé. */
+    val canFetch: Boolean get() = hasLocation || followLocation
     val latitude: Double get() = java.lang.Double.longBitsToDouble(sp.getLong(K_LAT, 0))
     val longitude: Double get() = java.lang.Double.longBitsToDouble(sp.getLong(K_LON, 0))
     var placeName: String
@@ -31,6 +34,20 @@ class Prefs(context: Context) {
             .putLong(K_LON, java.lang.Double.doubleToRawLongBits(lon))
             .putString(K_PLACE, name)
             .remove(K_W_TIME) // météo de l'ancien lieu invalide
+            .apply()
+    }
+
+    /** Suivre la position de l'appareil (le lieu change avec les déplacements). */
+    var followLocation: Boolean
+        get() = sp.getBoolean(K_FOLLOW, false)
+        set(v) = sp.edit().putBoolean(K_FOLLOW, v).apply()
+
+    /** Met à jour les coordonnées suivies sans effacer la météo affichée. */
+    fun updateFollowedLocation(lat: Double, lon: Double, name: String) {
+        sp.edit()
+            .putLong(K_LAT, java.lang.Double.doubleToRawLongBits(lat))
+            .putLong(K_LON, java.lang.Double.doubleToRawLongBits(lon))
+            .putString(K_PLACE, name)
             .apply()
     }
 
@@ -91,6 +108,7 @@ class Prefs(context: Context) {
         const val K_LON = "lon"
         const val K_PLACE = "place"
         const val K_TZ = "timezone"
+        const val K_FOLLOW = "follow_location"
         const val K_REFRESH = "refresh_minutes"
         const val K_W_TEMP = "w_temp"
         const val K_W_FEELS = "w_feels"

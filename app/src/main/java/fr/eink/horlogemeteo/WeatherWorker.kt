@@ -20,6 +20,7 @@ class WeatherWorker(context: Context, params: WorkerParameters) : CoroutineWorke
     override suspend fun doWork(): Result {
         val ctx = applicationContext
         val prefs = Prefs(ctx)
+        if (prefs.followLocation) updateLocation(ctx, prefs)
         if (!prefs.hasLocation) {
             prefs.refreshingSince = 0
             WidgetRenderer.updateAll(ctx)
@@ -36,6 +37,17 @@ class WeatherWorker(context: Context, params: WorkerParameters) : CoroutineWorke
             prefs.refreshingSince = 0
             WidgetRenderer.updateAll(ctx)
         }
+    }
+
+    /** Mode « suivre ma position » : relit la position et renomme le lieu si on s'est déplacé. */
+    private suspend fun updateLocation(ctx: Context, prefs: Prefs) {
+        val loc = runCatching { LocationHelper.current(ctx) }.getOrNull() ?: return
+        val moved = !prefs.hasLocation || LocationHelper.distance(
+            prefs.latitude, prefs.longitude, loc.latitude, loc.longitude,
+        ) > 1_000f
+        if (!moved && prefs.placeName.isNotBlank()) return
+        val name = LocationHelper.placeName(ctx, loc.latitude, loc.longitude)
+        prefs.updateFollowedLocation(loc.latitude, loc.longitude, name)
     }
 
     companion object {

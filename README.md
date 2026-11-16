@@ -5,6 +5,8 @@
 - **Heure du lieu choisi** en très grand (HH:mm:ss), avec la date en toutes lettres.
   Si le lieu est dans un autre fuseau horaire, l'heure de l'appareil est rappelée en dessous.
 - **Météo résumée** (toucher pour actualiser).
+- **Suivi de position (option)** : le lieu, la météo et l'heure locale suivent vos déplacements
+  (position relue à chaque actualisation de la météo ; demande la localisation « Toujours autoriser »).
 - **Alarmes** : ajout, modification, suppression, activation par interrupteur.
   - heure, jours de répétition (L M M J V S D, ou une seule fois), nom ;
   - **son au choix** : sonnerie du système, ou n'importe quel fichier audio (MP3…) du stockage,

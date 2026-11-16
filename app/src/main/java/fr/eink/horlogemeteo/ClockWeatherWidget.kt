@@ -21,7 +21,7 @@ class ClockWeatherWidget : AppWidgetProvider() {
         // Météo trop ancienne (ex. après un redémarrage) : on relance.
         val w = Prefs(context).weather
         val minutes = Prefs(context).refreshMinutes
-        if (minutes > 0 && Prefs(context).hasLocation &&
+        if (minutes > 0 && Prefs(context).canFetch &&
             (w == null || System.currentTimeMillis() - w.fetchedAt > minutes * 60_000L * 2)
         ) {
             WeatherWorker.refreshNow(context)

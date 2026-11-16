@@ -67,7 +67,26 @@
             android:id="@+id/gps_button"
             style="@style/InkButton"
             android:layout_marginTop="12dp"
-            android:text="Utiliser ma position actuelle" />
+            android:text="Utiliser ma position actuelle (une fois)" />
+
+        <CheckBox
+            android:id="@+id/follow_location"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:buttonTint="#000000"
+            android:minHeight="48dp"
+            android:text="Suivre ma position (GPS) : le lieu change avec mes déplacements"
+            android:textColor="#000000"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/follow_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="32dp"
+            android:textColor="#000000"
+            android:textSize="13sp" />
 
         <TextView
             style="@style/SectionTitle"

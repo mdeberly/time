@@ -56,7 +56,7 @@ class MainActivity : Activity() {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
         findViewById<View>(R.id.main_weather).setOnClickListener {
-            if (prefs.hasLocation) {
+            if (prefs.canFetch) {
                 prefs.refreshingSince = System.currentTimeMillis()
                 WidgetRenderer.updateAll(this)
                 WeatherWorker.refreshNow(this)
@@ -83,6 +83,12 @@ class MainActivity : Activity() {
         lastDate = ""
         findViewById<TextView>(R.id.main_place).text =
             prefs.placeName.ifBlank { "Heure locale" }
+        // Suivi de position : à l'ouverture de l'appli, on relit la position si la météo date un peu.
+        val w = prefs.weather
+        if (prefs.followLocation && (w == null || System.currentTimeMillis() - w.fetchedAt > 15 * 60_000L)) {
+            WeatherWorker.refreshNow(this)
+            handler.postDelayed({ onResumeRefreshDone() }, 20_000)
+        }
         renderWeather()
         renderAlarms()
         handler.removeCallbacks(ticker)
@@ -92,6 +98,12 @@ class MainActivity : Activity() {
     override fun onPause() {
         handler.removeCallbacksAndMessages(null)
         super.onPause()
+    }
+
+    private fun onResumeRefreshDone() {
+        findViewById<TextView>(R.id.main_place).text = prefs.placeName.ifBlank { "Heure locale" }
+        lastDate = ""
+        renderWeather()
     }
 
     private fun tick() {
@@ -123,7 +135,7 @@ class MainActivity : Activity() {
         val icon = findViewById<ImageView>(R.id.main_weather_icon)
         val l1 = findViewById<TextView>(R.id.main_weather_line1)
         val l2 = findViewById<TextView>(R.id.main_weather_line2)
-        if (!prefs.hasLocation) {
+        if (!prefs.canFetch) {
             icon.setImageResource(R.drawable.ic_w_unknown)
             l1.text = "Choisir un lieu"
             l2.text = "Toucher pour régler la météo"

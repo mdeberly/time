@@ -5,12 +5,7 @@ import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.location.Geocoder
-import android.location.Location
-import android.location.LocationListener
-import android.location.LocationManager
 import android.os.Bundle
-import android.os.Looper
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
@@ -23,13 +18,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlin.coroutines.resume
 
 /** Écran de réglages, servant aussi d'écran de configuration du widget. */
 class SettingsActivity : Activity() {
@@ -40,6 +32,8 @@ class SettingsActivity : Activity() {
     private lateinit var status: TextView
     private lateinit var results: LinearLayout
     private lateinit var searchField: EditText
+    private lateinit var followBox: android.widget.CheckBox
+    private lateinit var followHint: TextView
 
     private val refreshOptions = mapOf(
         R.id.r15 to 15, R.id.r30 to 30, R.id.r60 to 60, R.id.r180 to 180, R.id.r0 to 0,
@@ -62,6 +56,8 @@ class SettingsActivity : Activity() {
         status = findViewById(R.id.status)
         results = findViewById(R.id.results)
         searchField = findViewById(R.id.search_field)
+        followBox = findViewById(R.id.follow_location)
+        followHint = findViewById(R.id.follow_hint)
 
         findViewById<Button>(R.id.search_button).setOnClickListener { search() }
         searchField.setOnEditorActionListener { _, actionId, _ ->
@@ -97,6 +93,7 @@ class SettingsActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        renderState()
         val granted = RingerMode.hasAccess(this)
         findViewById<TextView>(R.id.dnd_status).text = if (granted) {
             "Accès accordé : la touche du widget passe de Sonnerie activée à Vibreur puis Muet."
@@ -119,10 +116,21 @@ class SettingsActivity : Activity() {
     }
 
     private fun renderState() {
-        currentPlace.text = if (prefs.hasLocation) {
-            "Actuel : ${prefs.placeName.ifBlank { "position enregistrée" }}"
-        } else {
-            "Aucun lieu choisi : recherchez une ville ou utilisez votre position."
+        currentPlace.text = when {
+            prefs.followLocation && prefs.hasLocation ->
+                "Actuel : ${prefs.placeName.ifBlank { "position" }} (suit vos déplacements)"
+            prefs.followLocation -> "Suit vos déplacements (position en attente)"
+            prefs.hasLocation -> "Actuel : ${prefs.placeName.ifBlank { "position enregistrée" }}"
+            else -> "Aucun lieu choisi : recherchez une ville ou utilisez votre position."
+        }
+        followBox.setOnCheckedChangeListener(null)
+        followBox.isChecked = prefs.followLocation
+        followBox.setOnCheckedChangeListener { _, checked -> setFollow(checked) }
+        followHint.text = when {
+            !prefs.followLocation -> "Le lieu et l'heure locale se mettent à jour à chaque actualisation de la météo."
+            !LocationHelper.hasBackgroundPermission(this) ->
+                "⚠ Localisation « Toujours autoriser » non accordée : le suivi ne se fera que lorsque l'appli est ouverte. Touchez la case pour la demander."
+            else -> "Le lieu se met à jour à chaque actualisation de la météo (localisation approximative, économe en batterie)."
         }
         val w = prefs.weather
         status.text = when {
@@ -168,6 +176,7 @@ class SettingsActivity : Activity() {
     }
 
     private fun applyLocation(lat: Double, lon: Double, name: String, tz: String?) {
+        prefs.followLocation = false // une ville choisie à la main remplace le suivi
         prefs.setLocation(lat, lon, name, tz)
         renderState()
         WidgetRenderer.updateAll(this)
@@ -176,79 +185,72 @@ class SettingsActivity : Activity() {
 
     // ---------- Position GPS / réseau ----------
 
+    private val locationPermissions = arrayOf(
+        Manifest.permission.ACCESS_COARSE_LOCATION,
+        Manifest.permission.ACCESS_FINE_LOCATION,
+    )
+
+    /** Position mesurée une fois (bouton « Utiliser ma position actuelle »). */
     private fun useMyLocation() {
-        if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION), REQ_LOCATION)
+        if (!LocationHelper.hasPermission(this)) {
+            requestPermissions(locationPermissions, REQ_LOCATION)
             return
         }
         status.text = "Localisation en cours…"
         scope.launch {
-            val loc = findLocation()
+            val loc = LocationHelper.current(this@SettingsActivity, maxAgeMs = 30 * 60_000L)
             if (loc == null) {
                 status.text = "Position introuvable. Activez la localisation ou recherchez une ville."
                 return@launch
             }
-            val name = withContext(Dispatchers.IO) { reverseGeocode(loc) }
-                ?: String.format(Locale.getDefault(), "%.2f, %.2f", loc.latitude, loc.longitude)
-            applyLocation(loc.latitude, loc.longitude, name, java.util.TimeZone.getDefault().id)
+            val name = LocationHelper.placeName(this@SettingsActivity, loc.latitude, loc.longitude)
+            applyLocation(loc.latitude, loc.longitude, name, null)
         }
+    }
+
+    /** Case « Suivre ma position » : demande les autorisations nécessaires, étape par étape. */
+    private fun setFollow(enabled: Boolean) {
+        if (!enabled) {
+            prefs.followLocation = false
+            renderState()
+            return
+        }
+        when {
+            !LocationHelper.hasPermission(this) -> {
+                requestPermissions(locationPermissions, REQ_FOLLOW)
+                return
+            }
+            !LocationHelper.hasBackgroundPermission(this) -> {
+                status.text = "Pour suivre vos déplacements même quand l'appli est fermée, choisissez " +
+                    "« Toujours autoriser » dans l'écran qui s'ouvre, puis revenez."
+                requestPermissions(arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION), REQ_BACKGROUND)
+            }
+        }
+        prefs.followLocation = true
+        renderState()
+        status.text = "Recherche de votre position…"
+        refreshNow()
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQ_LOCATION) {
-            if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) useMyLocation()
-            else status.text = "Permission refusée : recherchez une ville à la place."
-        }
-    }
-
-    @Suppress("MissingPermission")
-    private suspend fun findLocation(): Location? {
-        val lm = getSystemService(LocationManager::class.java) ?: return null
-        val providers = lm.getProviders(true)
-        val recent = providers.mapNotNull { runCatching { lm.getLastKnownLocation(it) }.getOrNull() }
-            .filter { System.currentTimeMillis() - it.time < 30 * 60_000L }
-            .maxByOrNull { it.time }
-        if (recent != null) return recent
-
-        val provider = when {
-            LocationManager.NETWORK_PROVIDER in providers -> LocationManager.NETWORK_PROVIDER
-            LocationManager.GPS_PROVIDER in providers -> LocationManager.GPS_PROVIDER
-            else -> return providers.firstNotNullOfOrNull {
-                runCatching { lm.getLastKnownLocation(it) }.getOrNull()
-            }
-        }
-        return withTimeoutOrNull(30_000) {
-            suspendCancellableCoroutine { cont ->
-                val listener = object : LocationListener {
-                    override fun onLocationChanged(location: Location) {
-                        lm.removeUpdates(this)
-                        if (cont.isActive) cont.resume(location)
-                    }
-                    @Deprecated("API < 29")
-                    override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
-                    override fun onProviderEnabled(provider: String) {}
-                    override fun onProviderDisabled(provider: String) {}
+        val granted = grantResults.any { it == PackageManager.PERMISSION_GRANTED }
+        when (requestCode) {
+            REQ_LOCATION ->
+                if (granted) useMyLocation() else status.text = "Permission refusée : recherchez une ville à la place."
+            REQ_FOLLOW ->
+                if (granted) setFollow(true) else {
+                    followBox.isChecked = false
+                    status.text = "Permission refusée : impossible de suivre votre position."
                 }
-                lm.requestLocationUpdates(provider, 0L, 0f, listener, Looper.getMainLooper())
-                cont.invokeOnCancellation { lm.removeUpdates(listener) }
-            }
-        } ?: runCatching { lm.getLastKnownLocation(provider) }.getOrNull()
-    }
-
-    @Suppress("DEPRECATION")
-    private fun reverseGeocode(loc: Location): String? {
-        if (!Geocoder.isPresent()) return null
-        return runCatching {
-            val a = Geocoder(this, Locale.getDefault()).getFromLocation(loc.latitude, loc.longitude, 1)?.firstOrNull()
-            a?.locality ?: a?.subAdminArea ?: a?.adminArea
-        }.getOrNull()
+            REQ_BACKGROUND -> renderState()
+        }
     }
 
     // ---------- Divers ----------
 
     private fun refreshNow() {
-        if (!prefs.hasLocation) {
+        if (!prefs.canFetch) {
             status.text = "Choisissez d'abord un lieu."
             return
         }
@@ -273,5 +275,7 @@ class SettingsActivity : Activity() {
     companion object {
         const val EXTRA_ASK_DND = "ask_dnd"
         private const val REQ_LOCATION = 42
+        private const val REQ_FOLLOW = 43
+        private const val REQ_BACKGROUND = 44
     }
 }

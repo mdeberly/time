@@ -70,7 +70,8 @@ object WidgetRenderer {
         val hhmm = SimpleDateFormat("HH:mm", locale)
         val status = when {
             prefs.isRefreshing -> "Actualisation…"
-            !prefs.hasLocation -> "Toucher : réglages"
+            !prefs.canFetch -> "Toucher : réglages"
+            !prefs.hasLocation -> "Recherche position…"
             w == null && prefs.lastAttemptFailed -> "Échec – toucher"
             w == null -> "Toucher pour màj"
             prefs.lastAttemptFailed -> "Échec · ${hhmm.format(Date(w.fetchedAt))}"
@@ -92,7 +93,7 @@ object WidgetRenderer {
         v.setOnClickPendingIntent(R.id.clock_area, clockApp)
         v.setOnClickPendingIntent(
             R.id.weather_area,
-            if (prefs.hasLocation) ClockWeatherWidget.refreshIntent(context) else settings,
+            if (prefs.canFetch) ClockWeatherWidget.refreshIntent(context) else settings,
         )
         return v
     }
