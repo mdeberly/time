@@ -11,15 +11,27 @@ android {
         applicationId = "fr.eink.horlogemeteo"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
+    }
+
+    // Clé de signature fixe : chaque nouvelle version peut s'installer par-dessus la précédente.
+    signingConfigs {
+        create("fixe") {
+            storeFile = file("horlogemeteo.keystore")
+            storePassword = "horlogemeteo"
+            keyAlias = "horlogemeteo"
+            keyPassword = "horlogemeteo"
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            // Signé avec la clé de debug pour pouvoir installer l'APK directement.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("fixe")
+        }
+        debug {
+            signingConfig = signingConfigs.getByName("fixe")
         }
     }
 

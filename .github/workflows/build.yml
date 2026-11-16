@@ -27,14 +27,17 @@ jobs:
         with:
           name: HorlogeMeteo-apk
           path: HorlogeMeteo.apk
-      # Publie l'APK dans la release « apk » : lien de téléchargement direct et stable.
-      - name: Publish release
+      # Publie l'APK : release versionnée (vX.Y) + release « apk » (lien stable vers la dernière version).
+      - name: Publish releases
         if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          VERSION=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          NOTES="APK pour Bigme HiBreak S. Lien direct permanent : https://github.com/${{ github.repository }}/releases/download/apk/HorlogeMeteo.apk"
+          gh release delete "v$VERSION" --yes --cleanup-tag || true
+          gh release create "v$VERSION" HorlogeMeteo.apk --target "$GITHUB_SHA" \
+            --title "Horloge Météo v$VERSION" --notes "$NOTES" --latest
           gh release delete apk --yes --cleanup-tag || true
-          gh release create apk HorlogeMeteo.apk \
-            --target "$GITHUB_SHA" \
-            --title "Horloge Météo (dernière version)" \
-            --notes "APK à installer sur la Bigme HiBreak S. Lien direct : https://github.com/${{ github.repository }}/releases/download/apk/HorlogeMeteo.apk"
+          gh release create apk HorlogeMeteo.apk --target "$GITHUB_SHA" \
+            --title "Horloge Météo (dernière version : v$VERSION)" --notes "$NOTES" --latest=false
