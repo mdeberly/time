@@ -11,8 +11,8 @@ android {
         applicationId = "fr.eink.horlogemeteo"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.3"
+        versionCode = 5
+        versionName = "1.4"
     }
 
     // Clé de signature fixe : chaque nouvelle version peut s'installer par-dessus la précédente.
