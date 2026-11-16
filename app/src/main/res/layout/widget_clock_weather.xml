@@ -84,14 +84,6 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Séparateur vertical -->
-    <FrameLayout
-        android:layout_width="1dp"
-        android:layout_height="match_parent"
-        android:layout_marginTop="6dp"
-        android:layout_marginBottom="6dp"
-        android:background="#000000" />
-
     <!-- Bloc météo (touché = actualisation manuelle) -->
     <LinearLayout
         android:id="@+id/weather_area"
