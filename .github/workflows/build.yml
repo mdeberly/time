@@ -5,6 +5,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -19,7 +22,19 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew --no-daemon assembleRelease
+          cp app/build/outputs/apk/release/app-release.apk HorlogeMeteo.apk
       - uses: actions/upload-artifact@v4
         with:
           name: HorlogeMeteo-apk
-          path: app/build/outputs/apk/release/*.apk
+          path: HorlogeMeteo.apk
+      # Publie l'APK dans la release « apk » : lien de téléchargement direct et stable.
+      - name: Publish release
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete apk --yes --cleanup-tag || true
+          gh release create apk HorlogeMeteo.apk \
+            --target "$GITHUB_SHA" \
+            --title "Horloge Météo (dernière version)" \
+            --notes "APK à installer sur la Bigme HiBreak S. Lien direct : https://github.com/${{ github.repository }}/releases/download/apk/HorlogeMeteo.apk"

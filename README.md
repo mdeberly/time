@@ -40,8 +40,9 @@ Widget Android **4 × 2** noir sur fond blanc, pensé pour écran e-ink :
 
 ## Installation
 
-1. Récupérer l'APK : onglet **Actions** du dépôt GitHub → dernier build → artefact
-   `HorlogeMeteo-apk` (ou compiler : `./gradlew assembleRelease`).
+1. Télécharger l'APK (lien direct, toujours la dernière version) :
+   https://github.com/mdeberly/time/releases/download/apk/HorlogeMeteo.apk
+   (ou compiler : `./gradlew assembleRelease`).
 2. Copier l'APK sur la HiBreak et l'installer (autoriser les sources inconnues).
 3. Appui long sur l'écran d'accueil → **Widgets** → « Heure, date et météo » → placer en 4 × 2.
 4. L'écran de réglages s'ouvre : rechercher une ville (ou « Utiliser ma position actuelle »).
