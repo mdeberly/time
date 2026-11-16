@@ -82,7 +82,35 @@ class SettingsActivity : Activity() {
             WeatherWorker.schedulePeriodic(this, replace = true)
         }
 
+        findViewById<Button>(R.id.dnd_button).setOnClickListener { openDndSettings() }
         renderState()
+
+        if (intent?.getBooleanExtra(EXTRA_ASK_DND, false) == true && !RingerMode.hasAccess(this)) {
+            android.widget.Toast.makeText(
+                this,
+                "Autorisez « Horloge Météo » pour pouvoir changer le mode sonore depuis le widget.",
+                android.widget.Toast.LENGTH_LONG,
+            ).show()
+            openDndSettings()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val granted = RingerMode.hasAccess(this)
+        findViewById<TextView>(R.id.dnd_status).text = if (granted) {
+            "Accès accordé : la touche du widget passe de Sonnerie activée à Vibreur puis Muet."
+        } else {
+            "Pour changer le mode sonore depuis le widget, Android demande l'accès « Ne pas déranger »."
+        }
+        findViewById<Button>(R.id.dnd_button).visibility = if (granted) android.view.View.GONE else android.view.View.VISIBLE
+        WidgetRenderer.updateAll(this) // la touche du widget change de comportement selon l'accès
+    }
+
+    private fun openDndSettings() {
+        runCatching {
+            startActivity(Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
+        }
     }
 
     override fun onDestroy() {
@@ -242,7 +270,8 @@ class SettingsActivity : Activity() {
             ?.hideSoftInputFromWindow(searchField.windowToken, 0)
     }
 
-    private companion object {
-        const val REQ_LOCATION = 42
+    companion object {
+        const val EXTRA_ASK_DND = "ask_dnd"
+        private const val REQ_LOCATION = 42
     }
 }

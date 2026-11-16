@@ -29,6 +29,26 @@ object WidgetRenderer {
         val date = SimpleDateFormat("EEEE d MMMM yyyy", locale).format(Date())
         v.setTextViewText(R.id.date, date.replaceFirstChar { it.titlecase(locale) })
 
+        // Profil sonore
+        val mode = RingerMode.current(context)
+        v.setTextViewText(R.id.ringer_label, RingerMode.label(mode))
+        v.setImageViewResource(R.id.ringer_button, RingerMode.icon(mode))
+        v.setOnClickPendingIntent(
+            R.id.ringer_button,
+            if (RingerMode.hasAccess(context)) {
+                ClockWeatherWidget.ringerIntent(context)
+            } else {
+                // Accès « Ne pas déranger » manquant : ouvre l'écran qui le demande.
+                PendingIntent.getActivity(
+                    context, 5,
+                    Intent(context, SettingsActivity::class.java)
+                        .putExtra(SettingsActivity.EXTRA_ASK_DND, true)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                )
+            },
+        )
+
         // Météo
         val w = prefs.weather
         if (w != null) {

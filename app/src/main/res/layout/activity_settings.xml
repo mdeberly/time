@@ -85,6 +85,23 @@
             <RadioButton android:id="@+id/r0" style="@style/InkRadio" android:text="Manuelle uniquement (toucher la météo du widget)" />
         </RadioGroup>
 
+        <TextView
+            style="@style/SectionTitle"
+            android:text="Profil sonore (widget)" />
+
+        <TextView
+            android:id="@+id/dnd_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#000000"
+            android:textSize="15sp" />
+
+        <Button
+            android:id="@+id/dnd_button"
+            style="@style/InkButton"
+            android:layout_marginTop="8dp"
+            android:text="Autoriser l'accès « Ne pas déranger »" />
+
         <Button
             android:id="@+id/refresh_button"
             style="@style/InkButton"

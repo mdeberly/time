@@ -41,6 +41,10 @@ class ClockWeatherWidget : AppWidgetProvider() {
                 WidgetRenderer.updateAll(context) // affiche « Actualisation… »
                 WeatherWorker.refreshNow(context)
             }
+            ACTION_RINGER -> {
+                RingerMode.cycle(context)
+                WidgetRenderer.updateAll(context)
+            }
             ACTION_MIDNIGHT,
             Intent.ACTION_DATE_CHANGED,
             Intent.ACTION_TIME_CHANGED,
@@ -56,6 +60,13 @@ class ClockWeatherWidget : AppWidgetProvider() {
     companion object {
         const val ACTION_REFRESH = "fr.eink.horlogemeteo.REFRESH"
         private const val ACTION_MIDNIGHT = "fr.eink.horlogemeteo.MIDNIGHT"
+        private const val ACTION_RINGER = "fr.eink.horlogemeteo.RINGER"
+
+        fun ringerIntent(context: Context): PendingIntent = PendingIntent.getBroadcast(
+            context, 6,
+            Intent(context, ClockWeatherWidget::class.java).setAction(ACTION_RINGER),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
 
         fun refreshIntent(context: Context): PendingIntent = PendingIntent.getBroadcast(
             context, 2,

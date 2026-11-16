@@ -32,6 +32,8 @@ Widget Android **4 × 2** noir sur fond blanc, pensé pour écran e-ink :
 - **Date** en toutes lettres, redessinée juste après minuit.
 - **Météo** : grande icône, température réelle et ressentie, mini/maxi du jour, lieu,
   heure de dernière actualisation.
+- **Profil sonore** en toutes lettres sous la date (Sonnerie activée / Vibreur / Muet), avec une touche
+  pour passer au mode suivant (nécessite l'accès « Ne pas déranger », demandé au premier appui).
 - **Toucher la zone météo** → actualisation manuelle (« Actualisation… » s'affiche).
 - **Toucher l'heure** → ouvre l'application (horloge et alarmes).
 - Actualisation automatique : 15 min, 30 min, 1 h (défaut), 3 h ou manuelle uniquement.
