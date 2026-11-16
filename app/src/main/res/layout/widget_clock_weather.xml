@@ -6,7 +6,10 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_background"
     android:orientation="horizontal"
-    android:padding="6dp">
+    android:paddingStart="6dp"
+    android:paddingTop="6dp"
+    android:paddingEnd="3dp"
+    android:paddingBottom="3dp">
 
     <!-- Bloc heure / date -->
     <LinearLayout
@@ -71,11 +74,14 @@
         android:paddingStart="3dp">
 
         <!-- Icône (grande) puis température réelle (grande) : se partagent la place restante -->
+        <!-- adjustViewBounds : l'image fait exactement la taille de l'icône, sans marge au-dessus/dessous -->
         <ImageView
             android:id="@+id/weather_icon"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="0dp"
-            android:layout_weight="1.15"
+            android:layout_gravity="center_horizontal"
+            android:layout_weight="1.4"
+            android:adjustViewBounds="true"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_w_partly_day" />
 
@@ -89,7 +95,7 @@
             android:autoSizeStepGranularity="1sp"
             android:autoSizeTextType="uniform"
             android:fontFamily="sans-serif-condensed"
-            android:gravity="center"
+            android:gravity="center_horizontal|top"
             android:includeFontPadding="false"
             android:maxLines="1"
             android:text="--°"
@@ -98,12 +104,12 @@
 
         <TextView
             android:id="@+id/feels"
-            style="@style/WidgetSmallLine"
+            style="@style/WidgetMediumLine"
             android:text="Ressenti --°" />
 
         <TextView
             android:id="@+id/minmax"
-            style="@style/WidgetSmallLine"
+            style="@style/WidgetMediumLine"
             android:text="↓--°  ↑--°"
             android:textStyle="bold" />
 
@@ -114,18 +120,20 @@
             android:fontFamily="sans-serif-condensed"
             android:text="—" />
 
+        <!-- Heure de mise à jour + bouton d'actualisation dans le coin en bas à droite -->
         <LinearLayout
             android:id="@+id/refresh_row"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
-            android:gravity="center"
+            android:gravity="center_vertical|end"
             android:orientation="horizontal">
 
             <TextView
                 android:id="@+id/updated"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
                 android:includeFontPadding="false"
                 android:maxLines="1"
                 android:text="Màj --:--"
@@ -134,9 +142,8 @@
 
             <ImageView
                 android:id="@+id/refresh_icon"
-                android:layout_width="12dp"
-                android:layout_height="12dp"
-                android:layout_marginStart="3dp"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
                 android:src="@drawable/ic_refresh" />
         </LinearLayout>
     </LinearLayout>
