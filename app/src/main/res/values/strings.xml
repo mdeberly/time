@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Horloge Météo</string>
+    <string name="widget_name">Heure, date et météo</string>
+    <string name="widget_description">Heure, date et météo (4×2), noir sur blanc pour écran e-ink</string>
+</resources>
