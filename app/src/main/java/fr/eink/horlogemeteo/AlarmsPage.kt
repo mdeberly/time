@@ -61,7 +61,13 @@ class AlarmsPage(private val activity: MainActivity, private val root: View) : P
             val time = row.findViewById<TextView>(R.id.item_time)
             time.text = alarm.timeText
             time.setTextColor(if (alarm.enabled) 0xFF000000.toInt() else 0xFF8A8A8A.toInt())
-            row.findViewById<TextView>(R.id.item_days).text = subtitle(alarm)
+            val sub = row.findViewById<TextView>(R.id.item_days)
+            sub.text = subtitle(alarm)
+            // Alarme désactivée : heure et nom barrés
+            val strike = android.graphics.Paint.STRIKE_THRU_TEXT_FLAG
+            listOf(time, sub).forEach {
+                it.paintFlags = if (alarm.enabled) it.paintFlags and strike.inv() else it.paintFlags or strike
+            }
 
             val sw = row.findViewById<Switch>(R.id.item_switch)
             val del = row.findViewById<View>(R.id.item_delete)

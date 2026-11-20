@@ -75,7 +75,8 @@ data class Alarm(
 
 /** Stockage des alarmes (JSON dans les SharedPreferences). */
 class AlarmStore(context: Context) {
-    private val sp = context.applicationContext.getSharedPreferences("alarms", Context.MODE_PRIVATE)
+    private val appContext = context.applicationContext
+    private val sp = appContext.getSharedPreferences("alarms", Context.MODE_PRIVATE)
 
     fun all(): List<Alarm> {
         val arr = JSONArray(sp.getString("list", "[]"))
@@ -95,5 +96,6 @@ class AlarmStore(context: Context) {
         val arr = JSONArray()
         list.forEach { arr.put(it.toJson()) }
         sp.edit().putString("list", arr.toString()).commit()
+        WidgetRenderer.updateAll(appContext) // la prochaine alarme affichée sur le widget change
     }
 }

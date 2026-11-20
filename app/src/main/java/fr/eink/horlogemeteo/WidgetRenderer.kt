@@ -29,6 +29,15 @@ object WidgetRenderer {
         val date = SimpleDateFormat("EEEE d MMMM yyyy", locale).format(Date())
         v.setTextViewText(R.id.date, date.replaceFirstChar { it.titlecase(locale) })
 
+        // Prochaine alarme active (cloche + heure)
+        val next = AlarmScheduler.nextAlarm(context)
+        if (next != null) {
+            v.setTextViewText(R.id.next_alarm_time, next.first.timeText)
+            v.setViewVisibility(R.id.next_alarm_row, android.view.View.VISIBLE)
+        } else {
+            v.setViewVisibility(R.id.next_alarm_row, android.view.View.GONE)
+        }
+
         // Profil sonore
         val mode = RingerMode.current(context)
         v.setTextViewText(R.id.ringer_label, RingerMode.label(mode))
