@@ -2,37 +2,37 @@ package fr.eink.horlogemeteo
 
 import android.Manifest
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.MediaPlayer
-import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.provider.OpenableColumns
-import android.view.ViewGroup
+import android.view.View
 import android.widget.Button
-import android.widget.CheckBox
 import android.widget.EditText
-import android.widget.LinearLayout
+import android.widget.FrameLayout
+import android.widget.NumberPicker
+import android.widget.Switch
 import android.widget.TextView
-import android.widget.TimePicker
 import android.widget.Toast
 import java.util.Calendar
 
-/** Création / modification d'une alarme : heure, jours, nom, son, vibration. */
+/** Création / modification d'une alarme : roues heure:minute, puis Répéter / Nom / Sonnerie / Vibreur. */
 class AlarmEditActivity : Activity() {
 
     private lateinit var store: AlarmStore
     private var alarmId = -1
+    private var days = 0
+    private var label = ""
     private var soundUri: String? = null
     private var soundName = ""
-    private val dayBoxes = mutableListOf<CheckBox>()
-    private lateinit var picker: TimePicker
-    private lateinit var soundLabel: TextView
-    private lateinit var daysSummary: TextView
+    private lateinit var hour: NumberPicker
+    private lateinit var minute: NumberPicker
+    private lateinit var vibrate: Switch
     private lateinit var testButton: Button
     private var preview: MediaPlayer? = null
     private val handler = Handler(Looper.getMainLooper())
@@ -44,74 +44,44 @@ class AlarmEditActivity : Activity() {
         alarmId = intent.getIntExtra(EXTRA_ID, -1)
         val existing = store.get(alarmId)
 
-        picker = findViewById(R.id.time_picker)
-        picker.setIs24HourView(true)
-        soundLabel = findViewById(R.id.sound_name)
-        daysSummary = findViewById(R.id.days_summary)
+        hour = findViewById(R.id.pick_hour)
+        minute = findViewById(R.id.pick_minute)
+        hour.setupInk(23, 34f)
+        minute.setupInk(59, 34f)
+        vibrate = findViewById(R.id.vibrate)
         testButton = findViewById(R.id.sound_test)
-
-        // Jours de la semaine (L M M J V S D)
-        val row = findViewById<LinearLayout>(R.id.days_row)
-        Alarm.DAY_LETTER.forEachIndexed { i, letter ->
-            val cb = CheckBox(this, null, 0, R.style.DayToggle)
-            cb.layoutParams = LinearLayout.LayoutParams(0, dp(44), 1f).apply {
-                marginStart = dp(3); marginEnd = dp(3)
-            }
-            cb.text = letter
-            cb.contentDescription = Alarm.DAY_SHORT[i]
-            cb.setOnCheckedChangeListener { _, _ -> updateDaysSummary() }
-            row.addView(cb)
-            dayBoxes += cb
-        }
-
-        val label = findViewById<EditText>(R.id.label_field)
-        val vibrate = findViewById<CheckBox>(R.id.vibrate)
 
         if (existing != null) {
             findViewById<TextView>(R.id.edit_title).text = "Modifier l'alarme"
-            picker.hour = existing.hour
-            picker.minute = existing.minute
-            dayBoxes.forEachIndexed { i, cb -> cb.isChecked = existing.days and (1 shl i) != 0 }
-            label.setText(existing.label)
-            vibrate.isChecked = existing.vibrate
+            hour.value = existing.hour
+            minute.value = existing.minute
+            days = existing.days
+            label = existing.label
             soundUri = existing.soundUri
             soundName = existing.soundName
+            vibrate.isChecked = existing.vibrate
         } else {
             val now = Calendar.getInstance()
-            picker.hour = now.get(Calendar.HOUR_OF_DAY)
-            picker.minute = now.get(Calendar.MINUTE)
+            hour.value = now.get(Calendar.HOUR_OF_DAY)
+            minute.value = now.get(Calendar.MINUTE)
             vibrate.isChecked = true
-            findViewById<Button>(R.id.delete).visibility = android.view.View.GONE
+            findViewById<View>(R.id.delete).visibility = View.GONE
         }
-        updateDaysSummary()
-        updateSoundLabel()
+        renderRows()
 
-        findViewById<Button>(R.id.sound_system).setOnClickListener { pickSystemSound() }
-        findViewById<Button>(R.id.sound_file).setOnClickListener { pickAudioFile() }
-        findViewById<Button>(R.id.sound_default).setOnClickListener {
-            soundUri = null; soundName = ""; updateSoundLabel()
+        findViewById<View>(R.id.edit_cancel).setOnClickListener { finish() }
+        findViewById<View>(R.id.edit_save).setOnClickListener { save() }
+        findViewById<View>(R.id.row_repeat).setOnClickListener { pickDays() }
+        findViewById<View>(R.id.row_name).setOnClickListener { pickName() }
+        findViewById<View>(R.id.row_sound).setOnClickListener {
+            SoundPicker.show(this, soundUri) {
+                soundUri = null
+                soundName = ""
+                renderRows()
+            }
         }
         testButton.setOnClickListener { togglePreview() }
-
-        findViewById<Button>(R.id.save).setOnClickListener {
-            val days = dayBoxes.foldIndexed(0) { i, acc, cb -> if (cb.isChecked) acc or (1 shl i) else acc }
-            val alarm = Alarm(
-                id = if (alarmId >= 0) alarmId else store.newId(),
-                hour = picker.hour,
-                minute = picker.minute,
-                days = days,
-                enabled = true,
-                label = label.text.toString().trim(),
-                soundUri = soundUri,
-                soundName = soundName,
-                vibrate = vibrate.isChecked,
-            )
-            store.save(alarm)
-            AlarmScheduler.schedule(this, alarm)
-            Toast.makeText(this, "Alarme dans ${untilText(alarm.nextTrigger())}", Toast.LENGTH_LONG).show()
-            finish()
-        }
-        findViewById<Button>(R.id.delete).setOnClickListener {
+        findViewById<View>(R.id.delete).setOnClickListener {
             AlarmScheduler.cancel(this, alarmId)
             store.delete(alarmId)
             finish()
@@ -125,82 +95,78 @@ class AlarmEditActivity : Activity() {
         super.onPause()
     }
 
-    private fun updateDaysSummary() {
-        val days = dayBoxes.foldIndexed(0) { i, acc, cb -> if (cb.isChecked) acc or (1 shl i) else acc }
-        daysSummary.text = Alarm(0, 0, 0, days).daysText
+    private fun renderRows() {
+        findViewById<TextView>(R.id.value_repeat).text = if (days == 0) "Jamais" else Alarm(0, 0, 0, days).daysText
+        findViewById<TextView>(R.id.value_name).text = label.ifBlank { "Alarme" }
+        findViewById<TextView>(R.id.value_sound).text = SoundPicker.label(soundUri, soundName)
     }
 
-    private fun updateSoundLabel() {
-        soundLabel.text = when {
-            soundUri == null -> "Son d'alarme par défaut"
-            soundName.isNotBlank() -> soundName
-            else -> "Son personnalisé"
-        }
+    private fun save() {
+        val alarm = Alarm(
+            id = if (alarmId >= 0) alarmId else store.newId(),
+            hour = hour.value,
+            minute = minute.value,
+            days = days,
+            enabled = true,
+            label = label.trim(),
+            soundUri = soundUri,
+            soundName = soundName,
+            vibrate = vibrate.isChecked,
+        )
+        store.save(alarm)
+        AlarmScheduler.schedule(this, alarm)
+        Toast.makeText(this, "Alarme dans ${untilText(alarm.nextTrigger())}", Toast.LENGTH_LONG).show()
+        finish()
     }
 
-    // ---------- Choix du son ----------
-
-    private fun pickSystemSound() {
-        val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER)
-            .putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM or RingtoneManager.TYPE_RINGTONE)
-            .putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Son de l'alarme")
-            .putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
-            .putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
-            .putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, soundUri?.let(Uri::parse))
-        try {
-            startActivityForResult(intent, REQ_RINGTONE)
-        } catch (e: Exception) {
-            Toast.makeText(this, "Sélecteur de sonneries indisponible : choisissez un fichier audio.", Toast.LENGTH_LONG).show()
-        }
+    private fun pickDays() {
+        val names = arrayOf("Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche")
+        val checked = BooleanArray(7) { days and (1 shl it) != 0 }
+        AlertDialog.Builder(this, R.style.InkDialog)
+            .setTitle("Répéter")
+            .setMultiChoiceItems(names, checked) { _, i, on -> checked[i] = on }
+            .setPositiveButton("OK") { _, _ ->
+                days = checked.foldIndexed(0) { i, acc, on -> if (on) acc or (1 shl i) else acc }
+                renderRows()
+            }
+            .setNeutralButton("Jamais") { _, _ ->
+                days = 0
+                renderRows()
+            }
+            .setNegativeButton("Annuler", null)
+            .show()
     }
 
-    private fun pickAudioFile() {
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
-            .addCategory(Intent.CATEGORY_OPENABLE)
-            .setType("audio/*")
-        try {
-            startActivityForResult(intent, REQ_FILE)
-        } catch (e: Exception) {
-            Toast.makeText(this, "Aucun gestionnaire de fichiers disponible.", Toast.LENGTH_LONG).show()
+    private fun pickName() {
+        val field = EditText(this).apply {
+            setText(label)
+            hint = "ex. Réveil Travail"
+            setSingleLine()
+            setTextColor(0xFF000000.toInt())
+            setSelection(text.length)
         }
+        val pad = (20 * resources.displayMetrics.density).toInt()
+        val box = FrameLayout(this).apply { setPadding(pad, pad / 2, pad, 0); addView(field) }
+        AlertDialog.Builder(this, R.style.InkDialog)
+            .setTitle("Nom")
+            .setView(box)
+            .setPositiveButton("OK") { _, _ ->
+                label = field.text.toString().trim()
+                renderRows()
+            }
+            .setNegativeButton("Annuler", null)
+            .show()
     }
 
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         @Suppress("DEPRECATION")
         super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode != RESULT_OK || data == null) return
-        when (requestCode) {
-            REQ_RINGTONE -> {
-                val uri: Uri? = if (Build.VERSION.SDK_INT >= 33) {
-                    data.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI, Uri::class.java)
-                } else {
-                    @Suppress("DEPRECATION")
-                    data.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
-                }
-                if (uri == null || RingtoneManager.isDefault(uri)) {
-                    soundUri = null; soundName = ""
-                } else {
-                    soundUri = uri.toString()
-                    soundName = runCatching { RingtoneManager.getRingtone(this, uri)?.getTitle(this) }
-                        .getOrNull() ?: ""
-                }
-            }
-            REQ_FILE -> {
-                val uri = data.data ?: return
-                // Garde l'accès au fichier après redémarrage.
-                runCatching {
-                    contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-                soundUri = uri.toString()
-                soundName = runCatching {
-                    contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use {
-                        if (it.moveToFirst()) it.getString(0) else null
-                    }
-                }.getOrNull() ?: "Fichier audio"
-            }
+        SoundPicker.parseResult(this, requestCode, resultCode, data)?.let { (uri, name) ->
+            soundUri = uri
+            soundName = name
+            renderRows()
         }
-        updateSoundLabel()
     }
 
     private fun togglePreview() {
@@ -213,7 +179,7 @@ class AlarmEditActivity : Activity() {
             Toast.makeText(this, "Impossible de lire ce son.", Toast.LENGTH_SHORT).show()
             return
         }
-        testButton.text = "■ Arrêter"
+        testButton.text = "■ Arrêter l'écoute"
         preview?.setOnCompletionListener { stopPreview() }
         handler.postDelayed({ stopPreview() }, 15_000)
     }
@@ -222,10 +188,8 @@ class AlarmEditActivity : Activity() {
         handler.removeCallbacksAndMessages(null)
         preview?.runCatching { stop(); release() }
         preview = null
-        testButton.text = "▶ Écouter"
+        testButton.text = "▶ Écouter la sonnerie"
     }
-
-    // ---------- Divers ----------
 
     private fun askNotificationPermission() {
         if (Build.VERSION.SDK_INT >= 33 &&
@@ -235,12 +199,8 @@ class AlarmEditActivity : Activity() {
         }
     }
 
-    private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
-
     companion object {
         const val EXTRA_ID = "alarm_id"
-        private const val REQ_RINGTONE = 1
-        private const val REQ_FILE = 2
         private const val REQ_NOTIF = 3
 
         fun untilText(at: Long): String {
@@ -249,7 +209,7 @@ class AlarmEditActivity : Activity() {
             val m = mins % 60
             return when {
                 h >= 24 -> "${h / 24} j ${h % 24} h"
-                h > 0 -> "$h h ${m} min"
+                h > 0 -> "$h h $m min"
                 else -> "$m min"
             }
         }

@@ -33,6 +33,10 @@ object WidgetRenderer {
         val mode = RingerMode.current(context)
         v.setTextViewText(R.id.ringer_label, RingerMode.label(mode))
         v.setImageViewResource(R.id.ringer_button, RingerMode.icon(mode))
+        v.setInt(
+            R.id.ringer_button, "setBackgroundResource",
+            if (RingerMode.isActive(mode)) R.drawable.widget_button_on else R.drawable.widget_button,
+        )
         v.setOnClickPendingIntent(
             R.id.ringer_button,
             if (RingerMode.hasAccess(context)) {

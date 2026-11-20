@@ -1,205 +1,103 @@
 package fr.eink.horlogemeteo
 
 import android.app.Activity
-import android.app.AlarmManager
 import android.content.Intent
-import android.net.Uri
-import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.os.SystemClock
-import android.provider.Settings
 import android.view.View
-import android.widget.Button
 import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.Switch
 import android.widget.TextView
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.TimeZone
-import kotlin.math.roundToInt
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 
-/** Écran principal : heure du lieu (HH:mm:ss), date, météo et liste des alarmes. */
+/** Écran principal à 4 onglets : Horloge, Alarme, Chronomètre, Minuteur. */
 class MainActivity : Activity() {
 
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private lateinit var prefs: Prefs
-    private lateinit var timeView: TextView
-    private lateinit var dateView: TextView
-    private lateinit var deviceTimeView: TextView
-    private val handler = Handler(Looper.getMainLooper())
-    private var lastDate = ""
+    private lateinit var pages: List<Page>
+    private lateinit var pageViews: List<View>
+    private lateinit var timerPage: TimerPage
+    private var current = 0
+    private var resumed = false
 
-    private val ticker = object : Runnable {
-        override fun run() {
-            tick()
-            // Recalé sur le début de chaque seconde.
-            val now = System.currentTimeMillis()
-            handler.postAtTime(this, SystemClock.uptimeMillis() + (1000 - now % 1000))
-        }
-    }
+    private val tabIds = listOf(R.id.tab_clock, R.id.tab_alarms, R.id.tab_stopwatch, R.id.tab_timer)
+    private val tabIconIds = listOf(R.id.tab_clock_icon, R.id.tab_alarms_icon, R.id.tab_stopwatch_icon, R.id.tab_timer_icon)
+    private val iconsOff = listOf(R.drawable.ic_tab_clock, R.drawable.ic_tab_alarm, R.drawable.ic_tab_stopwatch, R.drawable.ic_tab_timer)
+    private val iconsOn = listOf(R.drawable.ic_tab_clock_on, R.drawable.ic_tab_alarm_on, R.drawable.ic_tab_stopwatch_on, R.drawable.ic_tab_timer_on)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         prefs = Prefs(this)
-        timeView = findViewById(R.id.main_time)
-        dateView = findViewById(R.id.main_date)
-        deviceTimeView = findViewById(R.id.main_device_time)
 
-        findViewById<Button>(R.id.add_alarm).setOnClickListener {
-            startActivity(Intent(this, AlarmEditActivity::class.java))
-        }
-        findViewById<Button>(R.id.open_settings).setOnClickListener {
+        pageViews = listOf(
+            findViewById(R.id.page_clock), findViewById(R.id.page_alarms),
+            findViewById(R.id.page_stopwatch), findViewById(R.id.page_timer),
+        )
+        timerPage = TimerPage(this, pageViews[3])
+        pages = listOf(
+            ClockPage(this, pageViews[0], scope),
+            AlarmsPage(this, pageViews[1]),
+            StopwatchPage(this, pageViews[2]),
+            timerPage,
+        )
+
+        tabIds.forEachIndexed { i, id -> findViewById<View>(id).setOnClickListener { select(i) } }
+        findViewById<View>(R.id.header_add).setOnClickListener { pages[current].onAdd() }
+        findViewById<View>(R.id.header_edit).setOnClickListener { pages[current].onEdit() }
+        findViewById<View>(R.id.header_settings).setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
-        findViewById<View>(R.id.main_weather).setOnClickListener {
-            if (prefs.canFetch) {
-                prefs.refreshingSince = System.currentTimeMillis()
-                WidgetRenderer.updateAll(this)
-                WeatherWorker.refreshNow(this)
-                renderWeather()
-                handler.postDelayed({ renderWeather() }, 5_000)
-                handler.postDelayed({ renderWeather() }, 15_000)
-            } else {
-                startActivity(Intent(this, SettingsActivity::class.java))
-            }
-        }
-        findViewById<View>(R.id.exact_alarm_warning).setOnClickListener {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                runCatching {
-                    startActivity(
-                        Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:$packageName")),
-                    )
-                }
-            }
-        }
+
+        current = prefs.lastTab.coerceIn(0, 3)
+        applyTab()
     }
 
     override fun onResume() {
         super.onResume()
-        lastDate = ""
-        findViewById<TextView>(R.id.main_place).text =
-            prefs.placeName.ifBlank { "Heure locale" }
-        // Suivi de position : à l'ouverture de l'appli, on relit la position si la météo date un peu.
-        val w = prefs.weather
-        if (prefs.followLocation && (w == null || System.currentTimeMillis() - w.fetchedAt > 15 * 60_000L)) {
-            WeatherWorker.refreshNow(this)
-            handler.postDelayed({ onResumeRefreshDone() }, 20_000)
-        }
-        renderWeather()
-        renderAlarms()
-        handler.removeCallbacks(ticker)
-        ticker.run()
+        resumed = true
+        pages[current].onShow()
     }
 
     override fun onPause() {
-        handler.removeCallbacksAndMessages(null)
+        resumed = false
+        pages[current].onHide()
         super.onPause()
     }
 
-    private fun onResumeRefreshDone() {
-        findViewById<TextView>(R.id.main_place).text = prefs.placeName.ifBlank { "Heure locale" }
-        lastDate = ""
-        renderWeather()
+    override fun onDestroy() {
+        scope.cancel()
+        super.onDestroy()
     }
 
-    private fun tick() {
-        val tz = prefs.timeZone
-        val locale = Locale.getDefault()
-        val now = Date()
-        timeView.text = SimpleDateFormat("HH:mm:ss", locale).apply { timeZone = tz }.format(now)
-
-        // La date et l'heure de l'appareil ne changent qu'à la minute : on évite de redessiner (e-ink).
-        val date = SimpleDateFormat("EEEE d MMMM yyyy", locale).apply { timeZone = tz }.format(now)
-            .replaceFirstChar { it.titlecase(locale) }
-        if (date != lastDate) {
-            dateView.text = date
-            lastDate = date
-        }
-        val device = TimeZone.getDefault()
-        if (device.getOffset(now.time) != tz.getOffset(now.time)) {
-            val txt = "Heure de l'appareil : " +
-                SimpleDateFormat("HH:mm", locale).apply { timeZone = device }.format(now)
-            if (deviceTimeView.text != txt) deviceTimeView.text = txt
-            deviceTimeView.visibility = View.VISIBLE
-        } else {
-            deviceTimeView.visibility = View.GONE
-        }
+    private fun select(index: Int) {
+        if (index == current) return
+        pages[current].onHide()
+        current = index
+        prefs.lastTab = index
+        applyTab()
+        if (resumed) pages[current].onShow()
     }
 
-    private fun renderWeather() {
-        val w = prefs.weather
-        val icon = findViewById<ImageView>(R.id.main_weather_icon)
-        val l1 = findViewById<TextView>(R.id.main_weather_line1)
-        val l2 = findViewById<TextView>(R.id.main_weather_line2)
-        if (!prefs.canFetch) {
-            icon.setImageResource(R.drawable.ic_w_unknown)
-            l1.text = "Choisir un lieu"
-            l2.text = "Toucher pour régler la météo"
-            return
+    private fun applyTab() {
+        pageViews.forEachIndexed { i, v -> v.visibility = if (i == current) View.VISIBLE else View.GONE }
+        tabIconIds.forEachIndexed { i, id ->
+            findViewById<ImageView>(id).setImageResource(if (i == current) iconsOn[i] else iconsOff[i])
         }
-        val hhmm = SimpleDateFormat("HH:mm", Locale.getDefault())
-        if (w == null) {
-            icon.setImageResource(R.drawable.ic_w_unknown)
-            l1.text = "--°"
-            l2.text = if (prefs.isRefreshing) "Actualisation…" else "Toucher pour actualiser"
-            return
-        }
-        icon.setImageResource(WeatherIcons.forCode(w.code, w.isDay))
-        l1.text = "${w.temperature.roundToInt()}°  (ressenti ${w.feelsLike.roundToInt()}°)"
-        val status = when {
-            prefs.isRefreshing -> "actualisation…"
-            prefs.lastAttemptFailed -> "échec, màj ${hhmm.format(Date(w.fetchedAt))}"
-            else -> "màj ${hhmm.format(Date(w.fetchedAt))}"
-        }
-        l2.text = "↓${w.min.roundToInt()}°  ↑${w.max.roundToInt()}°  ·  $status ⟳"
+        val page = pages[current]
+        findViewById<TextView>(R.id.header_title).text = page.title
+        findViewById<View>(R.id.header_add).visibility = if (page.hasAdd) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.header_edit).visibility = if (page.hasEdit) View.VISIBLE else View.GONE
     }
 
-    private fun renderAlarms() {
-        val list = findViewById<LinearLayout>(R.id.alarm_list)
-        list.removeAllViews()
-        val alarms = AlarmStore(this).all()
-        alarms.forEach { alarm ->
-            val row = layoutInflater.inflate(R.layout.item_alarm, list, false)
-            row.findViewById<TextView>(R.id.item_time).text = alarm.timeText
-            row.findViewById<TextView>(R.id.item_days).text =
-                listOf(alarm.daysText, alarm.label).filter { it.isNotBlank() }.joinToString(" · ")
-            row.findViewById<TextView>(R.id.item_sound).text =
-                "♪ " + alarm.soundName.ifBlank { if (alarm.soundUri == null) "Son par défaut" else "Son personnalisé" }
-            val sw = row.findViewById<Switch>(R.id.item_switch)
-            sw.isChecked = alarm.enabled
-            sw.setOnCheckedChangeListener { _, checked ->
-                val updated = alarm.copy(enabled = checked)
-                AlarmStore(this).save(updated)
-                AlarmScheduler.schedule(this, updated)
-                renderNextAlarm()
-            }
-            row.setOnClickListener {
-                startActivity(Intent(this, AlarmEditActivity::class.java).putExtra(AlarmEditActivity.EXTRA_ID, alarm.id))
-            }
-            list.addView(row)
-        }
-        renderNextAlarm()
-
-        val am = getSystemService(AlarmManager::class.java)
-        val missingExact = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !am.canScheduleExactAlarms()
-        findViewById<View>(R.id.exact_alarm_warning).visibility =
-            if (missingExact && alarms.any { it.enabled }) View.VISIBLE else View.GONE
-    }
-
-    private fun renderNextAlarm() {
-        val next = AlarmScheduler.nextAlarm(this)
-        val view = findViewById<TextView>(R.id.next_alarm)
-        view.text = when {
-            AlarmStore(this).all().isEmpty() -> "Aucune alarme. Touchez « + Ajouter »."
-            next == null -> "Aucune alarme active."
-            else -> {
-                val fmt = SimpleDateFormat("EEEE HH:mm", Locale.getDefault())
-                "Prochaine : ${fmt.format(Date(next.second))} (dans ${AlarmEditActivity.untilText(next.second)})"
-            }
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        @Suppress("DEPRECATION")
+        super.onActivityResult(requestCode, resultCode, data)
+        SoundPicker.parseResult(this, requestCode, resultCode, data)?.let { (uri, name) ->
+            timerPage.onSoundPicked(uri, name)
         }
     }
 }

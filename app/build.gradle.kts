@@ -12,8 +12,8 @@ android {
         minSdk = 26
         // Android 9 : seule façon pour une appli de couper/allumer le Wi-Fi et le Bluetooth elle-même.
         targetSdk = 28
-        versionCode = 7
-        versionName = "1.6"
+        versionCode = 8
+        versionName = "2.0"
     }
 
     // Clé de signature fixe : chaque nouvelle version peut s'installer par-dessus la précédente.

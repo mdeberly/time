@@ -16,10 +16,13 @@ object RingerMode {
         else -> "Sonnerie activée"
     }
 
+    /** Le bouton est plein (noir) quand la sonnerie est activée. */
+    fun isActive(mode: Int): Boolean = mode == AudioManager.RINGER_MODE_NORMAL
+
     fun icon(mode: Int): Int = when (mode) {
         AudioManager.RINGER_MODE_SILENT -> R.drawable.ic_ringer_silent
         AudioManager.RINGER_MODE_VIBRATE -> R.drawable.ic_ringer_vibrate
-        else -> R.drawable.ic_ringer_normal
+        else -> R.drawable.ic_ringer_normal_white
     }
 
     /** Le mode « Muet » (et la sortie de ce mode) exige l'accès « Ne pas déranger ». */

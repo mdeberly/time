@@ -11,6 +11,15 @@ class AlarmReceiver : BroadcastReceiver() {
             ACTION_FIRE -> {
                 val id = intent.getIntExtra(EXTRA_ID, -1)
                 val snooze = intent.getBooleanExtra(EXTRA_SNOOZE, false)
+                if (id == AlarmScheduler.TIMER_ID) {
+                    TimerState(context).finished()
+                    context.startForegroundService(
+                        Intent(context, AlarmService::class.java)
+                            .setAction(AlarmService.ACTION_RING)
+                            .putExtra(EXTRA_ID, id),
+                    )
+                    return
+                }
                 val alarm = AlarmStore(context).get(id) ?: return
                 if (!snooze) {
                     // Alarme ponctuelle → désactivée ; récurrente → prochaine occurrence.

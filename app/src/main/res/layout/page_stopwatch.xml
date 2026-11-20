@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center_horizontal"
+    android:orientation="vertical">
+
+    <!-- Cadran analogique : heures, minutes, secondes -->
+    <fr.eink.horlogemeteo.StopwatchDialView
+        android:id="@+id/sw_dial"
+        android:layout_width="280dp"
+        android:layout_height="280dp"
+        android:layout_marginTop="4dp" />
+
+    <!-- Affichage digital : heures:minutes:secondes.centièmes -->
+    <TextView
+        android:id="@+id/sw_digital"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:fontFeatureSettings="tnum"
+        android:gravity="center"
+        android:text="00:00:00.00"
+        android:textColor="#000000"
+        android:textSize="40sp" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        android:layout_weight="1"
+        android:paddingStart="32dp"
+        android:paddingEnd="32dp">
+
+        <LinearLayout
+            android:id="@+id/sw_laps"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageButton android:id="@+id/sw_reset" style="@style/ControlIcon" android:contentDescription="Remettre à zéro" android:src="@drawable/ic_reset" />
+        <ImageButton android:id="@+id/sw_start" style="@style/ControlMain" android:contentDescription="Démarrer" android:src="@drawable/ic_play_circle" />
+        <ImageButton android:id="@+id/sw_lap" style="@style/ControlIcon" android:contentDescription="Tour" android:src="@drawable/ic_lap" />
+    </LinearLayout>
+</LinearLayout>

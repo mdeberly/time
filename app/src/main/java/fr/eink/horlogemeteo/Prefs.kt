@@ -51,6 +51,20 @@ class Prefs(context: Context) {
             .apply()
     }
 
+    // --- 2e heure (lieu au choix) ---
+    val secondPlace: String? get() = sp.getString(K_SECOND_PLACE, null)
+    val secondTimeZone: java.util.TimeZone?
+        get() = sp.getString(K_SECOND_TZ, null)?.let { java.util.TimeZone.getTimeZone(it) }
+
+    fun setSecondClock(name: String?, tz: String?) {
+        sp.edit().putString(K_SECOND_PLACE, name).putString(K_SECOND_TZ, tz).apply()
+    }
+
+    /** Dernier onglet ouvert dans l'appli. */
+    var lastTab: Int
+        get() = sp.getInt(K_TAB, 0)
+        set(v) = sp.edit().putInt(K_TAB, v).apply()
+
     // --- Fréquence d'actualisation automatique (minutes, 0 = manuelle uniquement) ---
     var refreshMinutes: Int
         get() = sp.getInt(K_REFRESH, 60)
@@ -109,6 +123,9 @@ class Prefs(context: Context) {
         const val K_PLACE = "place"
         const val K_TZ = "timezone"
         const val K_FOLLOW = "follow_location"
+        const val K_SECOND_PLACE = "second_place"
+        const val K_SECOND_TZ = "second_tz"
+        const val K_TAB = "last_tab"
         const val K_REFRESH = "refresh_minutes"
         const val K_W_TEMP = "w_temp"
         const val K_W_FEELS = "w_feels"

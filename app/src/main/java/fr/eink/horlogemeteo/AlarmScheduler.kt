@@ -9,6 +9,8 @@ import android.os.Build
 /** Programme les alarmes auprès du système (AlarmManager.setAlarmClock = alarme exacte, réveille l'appareil). */
 object AlarmScheduler {
     const val SNOOZE_MINUTES = 10
+    /** Identifiant réservé à la fin du minuteur. */
+    const val TIMER_ID = -100
     private const val SNOOZE_OFFSET = 100_000
 
     fun schedule(context: Context, alarm: Alarm) {
@@ -28,6 +30,12 @@ object AlarmScheduler {
         val am = context.getSystemService(AlarmManager::class.java)
         am.cancel(pending(context, alarmId, snooze = false))
         am.cancel(pending(context, alarmId, snooze = true))
+    }
+
+    fun scheduleTimer(context: Context, at: Long) = setAt(context, TIMER_ID, at, snooze = false)
+
+    fun cancelTimer(context: Context) {
+        context.getSystemService(AlarmManager::class.java).cancel(pending(context, TIMER_ID, snooze = false))
     }
 
     /** Prochaine alarme active, pour l'affichage. */

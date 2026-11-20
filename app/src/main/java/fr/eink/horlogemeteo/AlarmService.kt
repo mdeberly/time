@@ -35,7 +35,7 @@ class AlarmService : Service() {
         when (intent?.action) {
             ACTION_RING -> {
                 val id = intent.getIntExtra(AlarmReceiver.EXTRA_ID, -1)
-                val alarm = AlarmStore(this).get(id)
+                val alarm = if (id == AlarmScheduler.TIMER_ID) TimerState(this).asAlarm() else AlarmStore(this).get(id)
                 if (alarm == null) {
                     stopSelf()
                     return START_NOT_STICKY
@@ -43,7 +43,7 @@ class AlarmService : Service() {
                 ring(alarm)
             }
             ACTION_SNOOZE -> {
-                if (ringingId >= 0) AlarmScheduler.snooze(this, ringingId)
+                if (ringingId >= 0 && ringingId != AlarmScheduler.TIMER_ID) AlarmScheduler.snooze(this, ringingId) // (pas de répétition pour le minuteur)
                 stopRinging()
             }
             ACTION_STOP -> stopRinging()
@@ -84,7 +84,7 @@ class AlarmService : Service() {
     private fun stopRinging() {
         handler.removeCallbacks(autoStop)
         releaseMedia()
-        ringingId = -1
+        ringingId = NONE
         sendBroadcast(Intent(ACTION_FINISHED).setPackage(packageName))
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -102,7 +102,7 @@ class AlarmService : Service() {
     override fun onDestroy() {
         handler.removeCallbacks(autoStop)
         releaseMedia()
-        ringingId = -1
+        ringingId = NONE
         super.onDestroy()
     }
 
@@ -112,16 +112,20 @@ class AlarmService : Service() {
             this, 10, ringIntent(this),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        return Notification.Builder(this, CHANNEL)
+        val isTimer = alarm.id == AlarmScheduler.TIMER_ID
+        val builder = Notification.Builder(this, CHANNEL)
             .setSmallIcon(R.drawable.ic_alarm)
-            .setContentTitle("Alarme ${alarm.timeText}")
+            .setContentTitle(if (isTimer) "Minuteur" else "Alarme ${alarm.timeText}")
             .setContentText(alarm.label.ifBlank { "Réveil" })
             .setCategory(Notification.CATEGORY_ALARM)
             .setVisibility(Notification.VISIBILITY_PUBLIC)
             .setOngoing(true)
             .setFullScreenIntent(fullScreen, true)
             .setContentIntent(fullScreen)
-            .addAction(Notification.Action.Builder(null, "Répéter ($SNOOZE_LABEL)", serviceIntent(this, ACTION_SNOOZE, 11)).build())
+        if (!isTimer) {
+            builder.addAction(Notification.Action.Builder(null, "Répéter ($SNOOZE_LABEL)", serviceIntent(this, ACTION_SNOOZE, 11)).build())
+        }
+        return builder
             .addAction(Notification.Action.Builder(null, "Arrêter", serviceIntent(this, ACTION_STOP, 12)).build())
             .build()
     }
@@ -136,8 +140,11 @@ class AlarmService : Service() {
         private const val AUTO_STOP_MS = 10 * 60_000L
         private val SNOOZE_LABEL = "${AlarmScheduler.SNOOZE_MINUTES} min"
 
-        /** Alarme en train de sonner (-1 = aucune). */
-        @Volatile var ringingId: Int = -1
+        /** Valeur de [ringingId] quand rien ne sonne. */
+        const val NONE = Int.MIN_VALUE
+
+        /** Alarme en train de sonner ([NONE] = aucune, [AlarmScheduler.TIMER_ID] = minuteur). */
+        @Volatile var ringingId: Int = NONE
             private set
         @Volatile var ringingLabel: String = ""
             private set

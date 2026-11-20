@@ -1,164 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- Écran principal : en-tête, page de l'onglet courant, barre d'onglets en bas. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#FFFFFF"
-    android:fillViewport="true">
+    android:orientation="vertical">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
+        android:layout_height="64dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
         android:paddingStart="20dp"
-        android:paddingTop="24dp"
-        android:paddingEnd="20dp"
-        android:paddingBottom="20dp">
-
-        <!-- Horloge du lieu -->
-        <TextView
-            android:id="@+id/main_place"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:textColor="#000000"
-            android:textSize="20sp"
-            android:textStyle="bold" />
+        android:paddingEnd="8dp">
 
         <TextView
-            android:id="@+id/main_time"
-            android:layout_width="match_parent"
-            android:layout_height="110dp"
-            android:autoSizeMaxTextSize="110sp"
-            android:autoSizeMinTextSize="40sp"
-            android:autoSizeStepGranularity="2sp"
-            android:autoSizeTextType="uniform"
-            android:fontFamily="sans-serif-condensed"
-            android:fontFeatureSettings="tnum"
-            android:gravity="center"
-            android:includeFontPadding="false"
-            android:maxLines="1"
-            android:text="00:00:00"
-            android:textColor="#000000"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/main_date"
-            android:layout_width="match_parent"
+            android:id="@+id/header_title"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:gravity="center"
-            android:textColor="#000000"
-            android:textSize="22sp" />
-
-        <TextView
-            android:id="@+id/main_device_time"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:gravity="center"
-            android:textColor="#000000"
-            android:textSize="14sp"
-            android:visibility="gone" />
-
-        <!-- Météo résumée (toucher = actualiser) -->
-        <LinearLayout
-            android:id="@+id/main_weather"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:background="@drawable/button_outline"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:padding="10dp">
-
-            <ImageView
-                android:id="@+id/main_weather_icon"
-                android:layout_width="56dp"
-                android:layout_height="56dp"
-                android:src="@drawable/ic_w_unknown" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/main_weather_line1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#000000"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/main_weather_line2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#000000"
-                    android:textSize="14sp" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- Alarmes -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Alarmes"
-                android:textColor="#000000"
-                android:textSize="22sp"
-                android:textStyle="bold" />
-
-            <Button
-                android:id="@+id/add_alarm"
-                style="@style/InkButtonFilled"
-                android:layout_width="wrap_content"
-                android:text="+ Ajouter" />
-        </LinearLayout>
-
-        <TextView
-            android:id="@+id/next_alarm"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:textColor="#000000"
-            android:textSize="14sp" />
-
-        <LinearLayout
-            android:id="@+id/alarm_list"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical" />
-
-        <TextView
-            android:id="@+id/exact_alarm_warning"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:background="@drawable/button_outline"
-            android:padding="10dp"
-            android:text="⚠ Autorisez les « Alarmes et rappels » pour que les alarmes sonnent à l'heure exacte (toucher ici)."
-            android:textColor="#000000"
-            android:textSize="14sp"
-            android:visibility="gone" />
-
-        <Space
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
             android:layout_weight="1"
-            android:minHeight="24dp" />
+            android:text="Horloge"
+            android:textColor="#000000"
+            android:textSize="24sp" />
 
-        <Button
-            android:id="@+id/open_settings"
-            style="@style/InkButton"
-            android:text="Lieu, météo et widget…" />
+        <ImageButton android:id="@+id/header_edit" style="@style/HeaderIcon" android:contentDescription="Modifier" android:src="@drawable/ic_edit" />
+        <ImageButton android:id="@+id/header_add" style="@style/HeaderIcon" android:contentDescription="Ajouter" android:src="@drawable/ic_add" />
+        <ImageButton android:id="@+id/header_settings" style="@style/HeaderIcon" android:contentDescription="Réglages" android:src="@drawable/ic_settings" />
     </LinearLayout>
-</ScrollView>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <include android:id="@+id/page_clock" layout="@layout/page_clock" />
+        <include android:id="@+id/page_alarms" layout="@layout/page_alarms" android:visibility="gone" />
+        <include android:id="@+id/page_stopwatch" layout="@layout/page_stopwatch" android:visibility="gone" />
+        <include android:id="@+id/page_timer" layout="@layout/page_timer" android:visibility="gone" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="72dp"
+        android:orientation="horizontal">
+
+        <LinearLayout android:id="@+id/tab_clock" style="@style/TabItem">
+            <ImageView android:id="@+id/tab_clock_icon" style="@style/TabIcon" android:src="@drawable/ic_tab_clock" />
+            <TextView style="@style/TabLabel" android:text="HORLOGE" />
+        </LinearLayout>
+
+        <LinearLayout android:id="@+id/tab_alarms" style="@style/TabItem">
+            <ImageView android:id="@+id/tab_alarms_icon" style="@style/TabIcon" android:src="@drawable/ic_tab_alarm" />
+            <TextView style="@style/TabLabel" android:text="ALARME" />
+        </LinearLayout>
+
+        <LinearLayout android:id="@+id/tab_stopwatch" style="@style/TabItem">
+            <ImageView android:id="@+id/tab_stopwatch_icon" style="@style/TabIcon" android:src="@drawable/ic_tab_stopwatch" />
+            <TextView style="@style/TabLabel" android:text="CHRONOMÈTRE" />
+        </LinearLayout>
+
+        <LinearLayout android:id="@+id/tab_timer" style="@style/TabItem">
+            <ImageView android:id="@+id/tab_timer_icon" style="@style/TabIcon" android:src="@drawable/ic_tab_timer" />
+            <TextView style="@style/TabLabel" android:text="MINUTEUR" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

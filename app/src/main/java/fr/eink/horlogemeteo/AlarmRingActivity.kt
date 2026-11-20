@@ -40,6 +40,9 @@ class AlarmRingActivity : Activity() {
             SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
         findViewById<TextView>(R.id.ring_label).text = AlarmService.ringingLabel.ifBlank { "Réveil" }
         findViewById<Button>(R.id.ring_snooze).text = "Répéter dans ${AlarmScheduler.SNOOZE_MINUTES} min"
+        if (AlarmService.ringingId == AlarmScheduler.TIMER_ID) {
+            findViewById<Button>(R.id.ring_snooze).visibility = android.view.View.GONE
+        }
         findViewById<Button>(R.id.ring_snooze).setOnClickListener {
             AlarmService.send(this, AlarmService.ACTION_SNOOZE)
             finish()
@@ -59,7 +62,7 @@ class AlarmRingActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
-        if (AlarmService.ringingId < 0) finish()
+        if (AlarmService.ringingId == AlarmService.NONE) finish()
     }
 
     override fun onDestroy() {
