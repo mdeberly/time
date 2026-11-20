@@ -41,6 +41,8 @@ class ClockWeatherWidget : AppWidgetProvider() {
                 WidgetRenderer.updateAll(context) // affiche « Actualisation… »
                 WeatherWorker.refreshNow(context)
             }
+            ACTION_WIFI -> WidgetRenderer.updateAll(context, wifiOverride = Radios.toggleWifi(context))
+            ACTION_BLUETOOTH -> WidgetRenderer.updateAll(context, btOverride = Radios.toggleBluetooth(context))
             ACTION_RINGER -> {
                 RingerMode.cycle(context)
                 WidgetRenderer.updateAll(context)
@@ -61,6 +63,20 @@ class ClockWeatherWidget : AppWidgetProvider() {
         const val ACTION_REFRESH = "fr.eink.horlogemeteo.REFRESH"
         private const val ACTION_MIDNIGHT = "fr.eink.horlogemeteo.MIDNIGHT"
         private const val ACTION_RINGER = "fr.eink.horlogemeteo.RINGER"
+        private const val ACTION_WIFI = "fr.eink.horlogemeteo.WIFI"
+        private const val ACTION_BLUETOOTH = "fr.eink.horlogemeteo.BLUETOOTH"
+
+        fun wifiIntent(context: Context): PendingIntent = PendingIntent.getBroadcast(
+            context, 7,
+            Intent(context, ClockWeatherWidget::class.java).setAction(ACTION_WIFI),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        fun bluetoothIntent(context: Context): PendingIntent = PendingIntent.getBroadcast(
+            context, 8,
+            Intent(context, ClockWeatherWidget::class.java).setAction(ACTION_BLUETOOTH),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
 
         fun ringerIntent(context: Context): PendingIntent = PendingIntent.getBroadcast(
             context, 6,

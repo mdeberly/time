@@ -10,9 +10,10 @@ android {
     defaultConfig {
         applicationId = "fr.eink.horlogemeteo"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 6
-        versionName = "1.5"
+        // Android 9 : seule façon pour une appli de couper/allumer le Wi-Fi et le Bluetooth elle-même.
+        targetSdk = 28
+        versionCode = 7
+        versionName = "1.6"
     }
 
     // Clé de signature fixe : chaque nouvelle version peut s'installer par-dessus la précédente.
@@ -33,6 +34,12 @@ android {
         debug {
             signingConfig = signingConfigs.getByName("fixe")
         }
+    }
+
+    lint {
+        // targetSdk volontairement ancien (voir defaultConfig) : appli installée hors Play Store.
+        disable += setOf("ExpiredTargetSdkVersion", "OldTargetApi")
+        checkReleaseBuilds = false
     }
 
     compileOptions {

@@ -107,16 +107,7 @@ class AlarmService : Service() {
     }
 
     private fun buildNotification(alarm: Alarm): Notification {
-        val nm = getSystemService(NotificationManager::class.java)
-        if (nm.getNotificationChannel(CHANNEL) == null) {
-            nm.createNotificationChannel(
-                NotificationChannel(CHANNEL, "Alarmes", NotificationManager.IMPORTANCE_HIGH).apply {
-                    setSound(null, null) // le son est joué par le service
-                    enableVibration(false)
-                    lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-                },
-            )
-        }
+        ensureChannel(this)
         val fullScreen = PendingIntent.getActivity(
             this, 10, ringIntent(this),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
@@ -150,6 +141,19 @@ class AlarmService : Service() {
             private set
         @Volatile var ringingLabel: String = ""
             private set
+
+        fun ensureChannel(context: Context) {
+            val nm = context.getSystemService(NotificationManager::class.java) ?: return
+            if (nm.getNotificationChannel(CHANNEL) == null) {
+                nm.createNotificationChannel(
+                    NotificationChannel(CHANNEL, "Alarmes", NotificationManager.IMPORTANCE_HIGH).apply {
+                        setSound(null, null) // le son est joué par le service
+                        enableVibration(false)
+                        lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                    },
+                )
+            }
+        }
 
         fun ringIntent(context: Context) = Intent(context, AlarmRingActivity::class.java)
 

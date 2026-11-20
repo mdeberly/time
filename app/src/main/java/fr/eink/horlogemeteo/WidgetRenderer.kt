@@ -14,13 +14,13 @@ import kotlin.math.roundToInt
 /** Construit et pousse le contenu de tous les widgets. */
 object WidgetRenderer {
 
-    fun updateAll(context: Context) {
+    fun updateAll(context: Context, wifiOverride: Boolean? = null, btOverride: Boolean? = null) {
         val mgr = AppWidgetManager.getInstance(context)
         val ids = mgr.getAppWidgetIds(ComponentName(context, ClockWeatherWidget::class.java))
-        if (ids.isNotEmpty()) mgr.updateAppWidget(ids, build(context))
+        if (ids.isNotEmpty()) mgr.updateAppWidget(ids, build(context, wifiOverride, btOverride))
     }
 
-    fun build(context: Context): RemoteViews {
+    fun build(context: Context, wifiOverride: Boolean? = null, btOverride: Boolean? = null): RemoteViews {
         val prefs = Prefs(context)
         val v = RemoteViews(context.packageName, R.layout.widget_clock_weather)
 
@@ -48,6 +48,18 @@ object WidgetRenderer {
                 )
             },
         )
+
+        // Wi-Fi / Bluetooth
+        val wifiOn = wifiOverride ?: Radios.isWifiOn(context)
+        v.setImageViewResource(R.id.wifi_button, if (wifiOn) R.drawable.ic_wifi_on else R.drawable.ic_wifi_off)
+        v.setInt(R.id.wifi_button, "setBackgroundResource", if (wifiOn) R.drawable.widget_button_on else R.drawable.widget_button)
+        v.setOnClickPendingIntent(R.id.wifi_button, ClockWeatherWidget.wifiIntent(context))
+
+        val btOn = btOverride ?: Radios.isBluetoothOn(context)
+        v.setImageViewResource(R.id.bt_button, if (btOn) R.drawable.ic_bt_on else R.drawable.ic_bt_off)
+        v.setInt(R.id.bt_button, "setBackgroundResource", if (btOn) R.drawable.widget_button_on else R.drawable.widget_button)
+        v.setOnClickPendingIntent(R.id.bt_button, ClockWeatherWidget.bluetoothIntent(context))
+        v.setViewVisibility(R.id.bt_button, if (Radios.hasBluetooth(context)) android.view.View.VISIBLE else android.view.View.GONE)
 
         // Météo
         val w = prefs.weather

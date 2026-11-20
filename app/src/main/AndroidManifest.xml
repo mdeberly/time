@@ -20,6 +20,11 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- Changement du profil sonore (Muet) -->
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
+    <!-- Boutons Wi-Fi / Bluetooth du widget -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
 
     <application
         android:name=".App"

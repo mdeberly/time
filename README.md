@@ -36,6 +36,10 @@ Widget Android **4 × 2** noir sur fond blanc, pensé pour écran e-ink :
   heure de dernière actualisation.
 - **Profil sonore** en toutes lettres sous la date (Sonnerie activée / Vibreur / Muet), avec une touche
   pour passer au mode suivant (nécessite l'accès « Ne pas déranger », demandé au premier appui).
+- **Boutons Wi-Fi et Bluetooth** à droite du profil sonore : plein noir = activé,
+  blanc encadré et barré = désactivé ; un appui bascule directement.
+  (L'appli cible Android 9 — `targetSdk 28` — seule façon pour une appli de basculer elle-même
+  le Wi-Fi et le Bluetooth.)
 - **Toucher la zone météo** → actualisation manuelle (« Actualisation… » s'affiche).
 - **Toucher l'heure** → ouvre l'application (horloge et alarmes).
 - Actualisation automatique : 15 min, 30 min, 1 h (défaut), 3 h ou manuelle uniquement.

@@ -64,23 +64,49 @@
 
             <TextView
                 android:id="@+id/ringer_label"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="0dp"
+                android:layout_height="26dp"
+                android:layout_weight="1"
+                android:autoSizeMaxTextSize="14sp"
+                android:autoSizeMinTextSize="9sp"
+                android:autoSizeStepGranularity="1sp"
+                android:autoSizeTextType="uniform"
+                android:gravity="end|center_vertical"
                 android:includeFontPadding="false"
                 android:maxLines="1"
                 android:text="Sonnerie activée"
-                android:textColor="#000000"
-                android:textSize="14sp" />
+                android:textColor="#000000" />
 
             <ImageView
                 android:id="@+id/ringer_button"
                 android:layout_width="34dp"
                 android:layout_height="26dp"
-                android:layout_marginStart="10dp"
+                android:layout_marginStart="8dp"
                 android:background="@drawable/widget_button"
                 android:padding="3dp"
                 android:scaleType="fitCenter"
                 android:src="@drawable/ic_ringer_normal" />
+
+            <!-- Wi-Fi et Bluetooth : plein noir = activé ; blanc encadré et barré = désactivé -->
+            <ImageView
+                android:id="@+id/wifi_button"
+                android:layout_width="34dp"
+                android:layout_height="26dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/widget_button_on"
+                android:padding="3dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_wifi_on" />
+
+            <ImageView
+                android:id="@+id/bt_button"
+                android:layout_width="34dp"
+                android:layout_height="26dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/widget_button_on"
+                android:padding="3dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_bt_on" />
         </LinearLayout>
     </LinearLayout>
 
